@@ -99,3 +99,12 @@ ENV/
 
 # mypy
 .mypy_cache/
+tickets/
+HANDOFF.md
+claude-plans/
+PLAN.md
+PLAN_*.md
+graphify-out/
+tmp/commit_msg.tmp
+code_analysis_results/
+.reasonix/
