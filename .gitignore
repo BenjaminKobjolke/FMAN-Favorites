@@ -108,3 +108,4 @@ graphify-out/
 tmp/commit_msg.tmp
 code_analysis_results/
 .reasonix/
+.claude/
