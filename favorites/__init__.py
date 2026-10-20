@@ -1,12 +1,14 @@
 #
 # Load the libraries that are used in these commands.
 #
+import fman
 from core.quicksearch_matchers import contains_chars
 from fman import DirectoryPaneCommand, show_prompt, show_alert, show_quicksearch, QuicksearchItem, show_status_message, clear_status_message, DirectoryPaneListener
 import os
 import re
 from fman.url import as_human_readable, as_url, splitscheme
 from fman.fs import is_dir
+from urllib.parse import urlparse
 
 #
 # I'm using two globals because it is faster for checking
@@ -113,6 +115,17 @@ class GoToFavoritePair(DirectoryPaneCommand):
                 if match or not query:
                     yield QuicksearchItem(dirName, highlight=match)
 
+
+class ToggleFtpInFavorites(DirectoryPaneCommand):
+    def is_visible(self):
+        return _ftp() is not None
+
+    def __call__(self):
+        enabled = not _show_ftp()
+        _set_show_ftp(enabled)
+        state = 'on' if enabled else 'off'
+        show_alert('FTP in Favorites is ' + state + '.')
+
 #
 # Function:    GoToFavaorite
 #
@@ -133,6 +146,28 @@ class GoToFavorite(DirectoryPaneCommand):
         result = show_quicksearch(self._suggest_directory)
         if result:
             query, dirName = result
+            ftp = _ftp()
+            if dirName.startswith('FTP: ') and ftp:
+                commands, _ = ftp
+                alias = dirName[len('FTP: '):]
+                bookmarks = fman.load_json('FTP Bookmarks.json', default={})
+                url = urlparse(alias)._replace(
+                    path=bookmarks[alias][1]).geturl()
+                commands._goto_ftp(self.pane, url)
+                clear_status_message()
+                return
+            if dirName.startswith('FTP open: ') and ftp:
+                _, ftp_module = ftp
+                base_url = dirName[len('FTP open: '):]
+                for open_base_url, last_url in \
+                        ftp_module.FtpWrapper.get_open_connections():
+                    if open_base_url == base_url:
+                        self.pane.set_path(last_url)
+                        break
+                else:
+                    self.pane.set_path(base_url + '/')
+                clear_status_message()
+                return
             directories = ["Home|~"]
             if os.path.isfile(FAVORITELIST):
                 with open(FAVORITELIST, "r") as f:
@@ -161,6 +196,20 @@ class GoToFavorite(DirectoryPaneCommand):
                 match = contains_chars(dirName.lower(), query.lower())
                 if match or not query:
                     yield QuicksearchItem(dirName, highlight=match)
+        ftp = _ftp()
+        if _show_ftp() and ftp:
+            _, ftp_module = ftp
+            bookmarks = fman.load_json('FTP Bookmarks.json', default={})
+            for alias in bookmarks:
+                item = 'FTP: ' + alias
+                match = contains_chars(item.lower(), query.lower())
+                if match or not query:
+                    yield QuicksearchItem(item, highlight=match)
+            for base_url, _ in ftp_module.FtpWrapper.get_open_connections():
+                item = 'FTP open: ' + base_url
+                match = contains_chars(item.lower(), query.lower())
+                if match or not query:
+                    yield QuicksearchItem(item, highlight=match)
 
 #
 # Function:    RemoveFavoriteDirectoryPairs
@@ -678,3 +727,23 @@ class ClearHotdirs(DirectoryPaneCommand):
         
         # Show confirmation message
         show_alert("All hot directories have been cleared.")
+
+
+def _ftp():
+    try:
+        from ftpclient import commands, ftp
+        return commands, ftp
+    except ImportError:
+        return None
+
+
+def _show_ftp():
+    settings = fman.load_json('Favorites Settings.json', default={})
+    return settings.get('show_ftp', False)
+
+
+def _set_show_ftp(enabled):
+    settings = fman.load_json(
+        'Favorites Settings.json', default={}, save_on_quit=True)
+    settings['show_ftp'] = enabled
+    fman.save_json('Favorites Settings.json')
