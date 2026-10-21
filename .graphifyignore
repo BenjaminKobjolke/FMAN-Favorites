@@ -2,3 +2,10 @@
 /__pycache__/
 /tickets/
 /tmp/
+*.md
+*.json
+LICENSE
+tools/
+.claude/
+claude-plans/
+graphify-out/
