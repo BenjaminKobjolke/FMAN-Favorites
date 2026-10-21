@@ -1,0 +1,6 @@
+# Normalize all text files to LF in the repository
+* text=auto eol=lf
+
+# Windows batch files must be CRLF - cmd.exe misparses LF-only scripts
+*.bat text eol=crlf
+*.cmd text eol=crlf
