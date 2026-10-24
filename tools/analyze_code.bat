@@ -9,7 +9,7 @@ if errorlevel 1 exit /b 1
 if "%~1"=="" goto default_analyzer
 set "ANALYZER_SCRIPT=%~1"
 shift
-set "ANALYZER_ARGUMENTS=%*"
+set "ANALYZER_ARGUMENTS=%1 %2 %3 %4 %5 %6 %7 %8 %9"
 goto launch_analyzer
 
 :default_analyzer
