@@ -5,11 +5,18 @@
   "command_check_scripts": [
     "graphify_update.bat"
   ],
-  "analysis_commands": [],
+  "analysis_commands": [
+    "python -m pytest --timeout=120 -q test_ftp_favorites.py"
+  ],
   "analysis_commands_seen": {
     "scripts": [
       "graphify_update.bat"
     ],
     "tests": true
+  },
+  "analysis_command_states": {
+    "python -m pytest --timeout=120 -q test_ftp_favorites.py": {
+      "test": "green"
+    }
   }
 }
