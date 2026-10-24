@@ -107,6 +107,7 @@ PLAN_*.md
 graphify-out/
 tmp/commit_msg.tmp
 code_analysis_results/
+tools/analyze_code_config.bat
 .reasonix/
 .claude/
 coding-rules.json
