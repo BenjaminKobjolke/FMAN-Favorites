@@ -1,0 +1,60 @@
+{
+  "log_level": "all",
+  "fail_on": "warning",
+  "max_lines_per_file": {
+    "enabled": true,
+    "warning": 300,
+    "error": 500,
+    "exclude_patterns": [
+      "venv/**",
+      ".venv/**",
+      "__pycache__/**",
+      "*.pyc",
+      ".git/**",
+      ".pytest_cache/**",
+      ".ruff_cache/**"
+    ]
+  },
+  "pmd_duplicates": {
+    "enabled": true,
+    "minimum_tokens": 100,
+    "exclude_patterns": {
+      "python": [
+        "venv/**",
+        ".venv/**",
+        "__pycache__/**",
+        "*.pyc",
+        ".git/**"
+      ]
+    }
+  },
+  "pmd_similar_code": {
+    "enabled": false,
+    "minimum_tokens": 100,
+    "ignore_identifiers": true,
+    "ignore_literals": true,
+    "ignore_annotations": false,
+    "exclude_patterns": {
+      "python": [
+        "venv/**",
+        ".venv/**",
+        "__pycache__/**",
+        "*.pyc",
+        ".git/**"
+      ]
+    }
+  },
+  "ruff_analyze": {
+    "enabled": true,
+    "select": ["E", "F", "W"],
+    "ignore": [],
+    "exclude_patterns": [
+      "venv/**",
+      ".venv/**",
+      "__pycache__/**",
+      "*.pyc",
+      ".git/**",
+      "example/**"
+    ]
+  }
+}

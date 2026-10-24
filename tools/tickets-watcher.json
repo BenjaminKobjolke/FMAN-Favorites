@@ -6,7 +6,19 @@
     "graphify_update.bat"
   ],
   "analysis_commands": [
-    "python -m pytest --timeout=120 -q test_ftp_favorites.py"
+    "python -m pytest --timeout=120 -q test_ftp_favorites.py",
+    "tools\\analyze_changed_and_new_files.bat"
+  ],
+  "analysis_command_kinds": {
+    "tools\\analyze_changed_and_new_files.bat": "code_quality"
+  },
+  "command_check_scripts": [
+    "graphify_update.bat",
+    "analyze_code.bat",
+    "analyze_changed_and_new_files.bat",
+    "analyze_code_config.bat",
+    "analyze_code_config.example.bat",
+    "fix_ruff_issues.bat"
   ],
   "analysis_commands_seen": {
     "scripts": [
