@@ -18,5 +18,6 @@
     "python -m pytest --timeout=120 -q test_ftp_favorites.py": {
       "test": "green"
     }
-  }
+  },
+  "analysis_code_quality_answered": true
 }
