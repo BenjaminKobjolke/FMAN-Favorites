@@ -13,6 +13,9 @@
   "analysis_commands": [
     "tools\\analyze_changed_and_new_files.bat"
   ],
+  "analysis_command_kinds": {
+    "tools\\analyze_changed_and_new_files.bat": "code_quality"
+  },
   "analysis_commands_seen": {
     "scripts": [
       "analyze_changed_and_new_files.bat",
@@ -25,5 +28,13 @@
     "tests": true
   },
   "analysis_tests_answered": true,
-  "analysis_format_command": "tools/fix_ruff_issues.bat"
+  "analysis_format_command": "tools/fix_ruff_issues.bat",
+  "analysis_command_states": {
+    "tools/fix_ruff_issues.bat": {
+      "code_quality": "green"
+    },
+    "tools\\analyze_changed_and_new_files.bat": {
+      "code_quality": "failed"
+    }
+  }
 }
