@@ -1,8 +1,15 @@
 import importlib
+import os
 import sys
 import types
 import unittest
 from unittest.mock import Mock
+
+
+def _drop_favorites_modules():
+    for name in list(sys.modules):
+        if name == 'favorites' or name.startswith('favorites.'):
+            sys.modules.pop(name, None)
 
 
 class FtpFavoritesTests(unittest.TestCase):
@@ -60,11 +67,11 @@ class FtpFavoritesTests(unittest.TestCase):
             'ftpclient.commands': self.commands,
             'ftpclient.ftp': self.ftp,
         })
-        sys.modules.pop('favorites', None)
+        _drop_favorites_modules()
         self.favorites = importlib.import_module('favorites')
 
     def tearDown(self):
-        sys.modules.pop('favorites', None)
+        _drop_favorites_modules()
         for name in ('fman', 'fman.url', 'fman.fs', 'core',
                      'core.quicksearch_matchers', 'ftpclient',
                      'ftpclient.commands', 'ftpclient.ftp'):
@@ -73,8 +80,37 @@ class FtpFavoritesTests(unittest.TestCase):
     def test_missing_ftp_plugin_is_detected_and_toggle_hidden(self):
         for name in ('ftpclient', 'ftpclient.commands', 'ftpclient.ftp'):
             sys.modules.pop(name, None)
-        self.assertIsNone(self.favorites._ftp())
+        self.assertIsNone(self.favorites.ftp_support._ftp())
         self.assertFalse(self.favorites.ToggleFtpInFavorites().is_visible())
+
+    def test_package_exposes_every_command_class(self):
+        command_names = (
+            'GoToFavoritePair', 'ToggleFtpInFavorites', 'GoToFavorite',
+            'RemoveFavoriteDirectoryPairs', 'RemoveFavoriteDirectory',
+            'RemoveShortenerDirectory', 'SetFavoriteDirectoryPairs',
+            'SetFavoriteDirectory', 'SetShortenDirectory', 'SetHotDir',
+            'GoToHotDir', 'PopdirectoryListener', 'PopDir',
+            'ListAllHotdirs', 'ClearHotdirs',
+        )
+
+        for name in command_names:
+            with self.subTest(name=name):
+                self.assertTrue(hasattr(self.favorites, name))
+
+    def test_expand_dir_path_resolves_shortener(self):
+        import tempfile
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            shortener_file = os.path.join(temp_dir, 'shorteners')
+            with open(shortener_file, 'w') as file:
+                file.write('work|' + temp_dir + '\n')
+            self.favorites.paths.SHORTENERLIST = shortener_file
+
+            self.assertEqual(
+                os.path.normpath(os.path.join(temp_dir, 'sub')),
+                os.path.normpath(
+                    self.favorites.paths.expandDirPath('{{work}}/sub')),
+            )
 
     def test_toggle_persists_new_state_and_reports_it(self):
         command = self.favorites.ToggleFtpInFavorites()
