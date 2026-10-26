@@ -8,7 +8,8 @@ call "%~dp0analyze_code_config.bat"
 if errorlevel 1 exit /b 1
 if "%~1"=="" goto default_analyzer
 set "ANALYZER_SCRIPT=%~1"
-shift
+rem Preserve %0 so %~dp0 below still refers to this script.
+shift /1
 set "ANALYZER_ARGUMENTS=%1 %2 %3 %4 %5 %6 %7 %8 %9"
 goto launch_analyzer
 
