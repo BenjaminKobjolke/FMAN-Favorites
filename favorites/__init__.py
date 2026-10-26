@@ -83,7 +83,7 @@ class GoToFavoritePair(DirectoryPaneCommand):
             if os.path.isfile(FAVORITEPAIRS):
                 with open(FAVORITEPAIRS, "r") as f:
                     directories = directories + f.readlines()
-            panes = self.pane.window.get_panes();
+            panes = self.pane.window.get_panes()
             for dirTuple in directories:
                 if '|' in dirTuple:
                     favName, favPath1, favPath2 = dirTuple.strip().split('|')[0:3]
