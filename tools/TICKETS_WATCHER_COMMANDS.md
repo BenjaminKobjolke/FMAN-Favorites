@@ -1,5 +1,5 @@
 # Version
-2
+3
 
 <!-- Managed by `tickets-watcher --setup`. Replaced whole when the version above changes;
      edit the shipped template in the tickets-watcher repo, not this copy. -->
@@ -62,3 +62,9 @@ test command has no per-test timeout.
 When a complete test command uses more than half its limit, the watcher raises the saved test
 limit for the next todo. Keep scripts printing output during long runs: a long silent stretch
 can create one low-priority follow-up asking for progress output.
+
+Projects may also provide `tools/check_build.bat`. When that file exists, the watcher runs it after
+every todo as a `code_quality` command even when it is not listed in the project settings. Keep it
+fast and side-effect free: print the build output, return the build's exit code, never `pause`, and
+do not run a release build. Setup does not ask about or add this command; remove or rename the file
+to turn it off.
