@@ -12,7 +12,7 @@ def _drop_favorites_modules():
             sys.modules.pop(name, None)
 
 
-class FtpFavoritesTests(unittest.TestCase):
+class FavoritesTestBase(unittest.TestCase):
     def setUp(self):
         self.settings = {}
         self.bookmarks = {}
@@ -28,6 +28,15 @@ class FtpFavoritesTests(unittest.TestCase):
         self.fman.show_quicksearch = Mock()
         self.fman.show_status_message = Mock()
         self.fman.clear_status_message = Mock()
+
+        self.fman_impl = types.ModuleType('fman.impl')
+        self.fman_impl.__path__ = []
+        self.fman_impl_util = types.ModuleType('fman.impl.util')
+        self.fman_impl_util.__path__ = []
+        self.fman_impl_qt = types.ModuleType('fman.impl.util.qt')
+        self.fman_impl_qt.__path__ = []
+        self.fman_impl_qt_thread = types.ModuleType('fman.impl.util.qt.thread')
+        self.fman_impl_qt_thread.run_in_main_thread = lambda function: function
 
         def load_json(name, default=None, **kwargs):
             if name == 'Favorites Settings.json':
@@ -59,6 +68,10 @@ class FtpFavoritesTests(unittest.TestCase):
         self.ftpclient.ftp = self.ftp
         sys.modules.update({
             'fman': self.fman,
+            'fman.impl': self.fman_impl,
+            'fman.impl.util': self.fman_impl_util,
+            'fman.impl.util.qt': self.fman_impl_qt,
+            'fman.impl.util.qt.thread': self.fman_impl_qt_thread,
             'fman.url': self.url_module,
             'fman.fs': self.fs_module,
             'core': self.core_module,
@@ -72,10 +85,14 @@ class FtpFavoritesTests(unittest.TestCase):
 
     def tearDown(self):
         _drop_favorites_modules()
-        for name in ('fman', 'fman.url', 'fman.fs', 'core',
+        for name in ('fman', 'fman.impl', 'fman.impl.util', 'fman.impl.util.qt',
+                     'fman.impl.util.qt.thread', 'fman.url', 'fman.fs', 'core',
                      'core.quicksearch_matchers', 'ftpclient',
                      'ftpclient.commands', 'ftpclient.ftp'):
             sys.modules.pop(name, None)
+
+
+class FtpFavoritesTests(FavoritesTestBase):
 
     def test_missing_ftp_plugin_is_detected_and_toggle_hidden(self):
         for name in ('ftpclient', 'ftpclient.commands', 'ftpclient.ftp'):
@@ -91,6 +108,7 @@ class FtpFavoritesTests(unittest.TestCase):
             'SetFavoriteDirectory', 'SetShortenDirectory', 'SetHotDir',
             'GoToHotDir', 'PopdirectoryListener', 'PopDir',
             'ListAllHotdirs', 'ClearHotdirs',
+            'ShowFavoritesPanel', 'OpenFavoritesPanelEntry',
         )
 
         for name in command_names:

@@ -6,6 +6,7 @@ from .favorite_commands import (
     SetFavoriteDirectory,
 )
 from .ftp_support import ToggleFtpInFavorites
+from .favorites_panel import OpenFavoritesPanelEntry, ShowFavoritesPanel
 from .hot_dirs import (
     ClearHotdirs,
     GoToHotDir,
@@ -36,4 +37,6 @@ __all__ = [
     "PopDir",
     "ListAllHotdirs",
     "ClearHotdirs",
+    "ShowFavoritesPanel",
+    "OpenFavoritesPanelEntry",
 ]

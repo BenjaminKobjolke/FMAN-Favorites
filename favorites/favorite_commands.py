@@ -1,6 +1,7 @@
 """Commands for opening and managing favorite directories."""
 
 import os
+from typing import Any
 from urllib.parse import urlparse
 
 import fman
@@ -23,6 +24,67 @@ from .paths import FAVORITELIST, expandDirPath, shortenDirPath
 #
 
 
+def favorite_items() -> list[str]:
+    """Return the favorite names displayed by GoToFavorite."""
+    directories = ["Home|~"]
+    if os.path.isfile(FAVORITELIST):
+        with open(FAVORITELIST, "r") as f:
+            directories = directories + f.readlines()
+
+    items = [directory.split('|')[0] for directory in directories if '|' in directory]
+    ftp = _ftp()
+    if _show_ftp() and ftp:
+        _, ftp_module = ftp
+        bookmarks = fman.load_json('FTP Bookmarks.json', default={})
+        items.extend('FTP: ' + alias for alias in bookmarks)
+        items.extend(
+            'FTP open: ' + base_url
+            for base_url, _ in ftp_module.FtpWrapper.get_open_connections())
+    return items
+
+
+def open_favorite(pane: Any, dir_name: str) -> None:
+    """Navigate a pane to the favorite selected by name."""
+    ftp = _ftp()
+    if dir_name.startswith('FTP: ') and ftp:
+        commands, _ = ftp
+        alias = dir_name[len('FTP: '):]
+        bookmarks = fman.load_json('FTP Bookmarks.json', default={})
+        url = urlparse(alias)._replace(
+            path=bookmarks[alias][1]).geturl()
+        commands._goto_ftp(pane, url)
+        clear_status_message()
+        return
+    if dir_name.startswith('FTP open: ') and ftp:
+        _, ftp_module = ftp
+        base_url = dir_name[len('FTP open: '):]
+        for open_base_url, last_url in \
+                ftp_module.FtpWrapper.get_open_connections():
+            if open_base_url == base_url:
+                pane.set_path(last_url)
+                break
+        else:
+            pane.set_path(base_url + '/')
+        clear_status_message()
+        return
+    directories = ["Home|~"]
+    if os.path.isfile(FAVORITELIST):
+        with open(FAVORITELIST, "r") as f:
+            directories = directories + f.readlines()
+    for dir_tuple in directories:
+        if '|' in dir_tuple:
+            fav_name, fav_path = dir_tuple.strip().split('|')[0:2]
+            if fav_name == dir_name:
+                if '://' in fav_path:
+                    new_path = expandDirPath(fav_path)
+                    pane.set_path(new_path)
+                else:
+                    new_path = as_url(expandDirPath(fav_path))
+                    pane.set_path(new_path)
+                break
+    clear_status_message()
+
+
 class GoToFavorite(DirectoryPaneCommand):
     #
     # This directory command is for selecting a project
@@ -33,71 +95,16 @@ class GoToFavorite(DirectoryPaneCommand):
         show_status_message('Favorite Selection')
         result = show_quicksearch(self._suggest_directory)
         if result:
-            query, dirName = result
-            ftp = _ftp()
-            if dirName.startswith('FTP: ') and ftp:
-                commands, _ = ftp
-                alias = dirName[len('FTP: '):]
-                bookmarks = fman.load_json('FTP Bookmarks.json', default={})
-                url = urlparse(alias)._replace(
-                    path=bookmarks[alias][1]).geturl()
-                commands._goto_ftp(self.pane, url)
-                clear_status_message()
-                return
-            if dirName.startswith('FTP open: ') and ftp:
-                _, ftp_module = ftp
-                base_url = dirName[len('FTP open: '):]
-                for open_base_url, last_url in \
-                        ftp_module.FtpWrapper.get_open_connections():
-                    if open_base_url == base_url:
-                        self.pane.set_path(last_url)
-                        break
-                else:
-                    self.pane.set_path(base_url + '/')
-                clear_status_message()
-                return
-            directories = ["Home|~"]
-            if os.path.isfile(FAVORITELIST):
-                with open(FAVORITELIST, "r") as f:
-                    directories = directories + f.readlines()
-            for dirTuple in directories:
-                if '|' in dirTuple:
-                    favName, favPath = dirTuple.strip().split('|')[0:2]
-                    if favName == dirName:
-                        if '://' in favPath:
-                            newPath = expandDirPath(favPath)
-                            self.pane.set_path(newPath)
-                        else:
-                            newPath = as_url(expandDirPath(favPath))
-                            self.pane.set_path(newPath)
-                        break
-        clear_status_message()
+            _, dir_name = result
+            open_favorite(self.pane, dir_name)
+        else:
+            clear_status_message()
 
     def _suggest_directory(self, query):
-        directories = ["Home|~"]
-        if os.path.isfile(FAVORITELIST):
-            with open(FAVORITELIST, "r") as f:
-                directories = directories + f.readlines()
-        for dirTuple in directories:
-            if '|' in dirTuple:
-                dirName = dirTuple.split('|')[0]
-                match = contains_chars(dirName.lower(), query.lower())
-                if match or not query:
-                    yield QuicksearchItem(dirName, highlight=match)
-        ftp = _ftp()
-        if _show_ftp() and ftp:
-            _, ftp_module = ftp
-            bookmarks = fman.load_json('FTP Bookmarks.json', default={})
-            for alias in bookmarks:
-                item = 'FTP: ' + alias
-                match = contains_chars(item.lower(), query.lower())
-                if match or not query:
-                    yield QuicksearchItem(item, highlight=match)
-            for base_url, _ in ftp_module.FtpWrapper.get_open_connections():
-                item = 'FTP open: ' + base_url
-                match = contains_chars(item.lower(), query.lower())
-                if match or not query:
-                    yield QuicksearchItem(item, highlight=match)
+        for item in favorite_items():
+            match = contains_chars(item.lower(), query.lower())
+            if match or not query:
+                yield QuicksearchItem(item, highlight=match)
 
 
 #

@@ -1,6 +1,7 @@
 """Commands for favorite directory pairs."""
 
 import os
+from typing import Any
 
 from core.quicksearch_matchers import contains_chars
 from fman import (
@@ -20,6 +21,42 @@ from .paths import FAVORITEPAIRS, expandDirPath, shortenDirPath
 #
 
 
+def favorite_pair_names() -> list[str]:
+    """Return the favorite pair names displayed by GoToFavoritePair."""
+    directories = ["Home|~|~"]
+    if os.path.isfile(FAVORITEPAIRS):
+        with open(FAVORITEPAIRS, "r") as f:
+            directories = directories + f.readlines()
+    return [directory.split('|')[0] for directory in directories
+            if '|' in directory]
+
+
+def open_favorite_pair(window: Any, dir_name: str) -> None:
+    """Navigate the first two panes to the named favorite pair."""
+    directories = ["Home|~|~"]
+    if os.path.isfile(FAVORITEPAIRS):
+        with open(FAVORITEPAIRS, "r") as f:
+            directories = directories + f.readlines()
+    panes = window.get_panes()
+    for dir_tuple in directories:
+        if '|' in dir_tuple:
+            fav_name, fav_path1, fav_path2 = dir_tuple.strip().split('|')[0:3]
+            if fav_name == dir_name:
+                if '://' in fav_path1:
+                    new_path = expandDirPath(fav_path1)
+                    panes[0].set_path(new_path)
+                else:
+                    new_path = as_url(expandDirPath(fav_path1))
+                    panes[0].set_path(new_path)
+                if '://' in fav_path2:
+                    new_path = expandDirPath(fav_path2)
+                    panes[1].set_path(new_path)
+                else:
+                    new_path = as_url(expandDirPath(fav_path2))
+                    panes[1].set_path(new_path)
+                break
+
+
 class GoToFavoritePair(DirectoryPaneCommand):
     #
     # This directory command is for selecting a project
@@ -30,42 +67,15 @@ class GoToFavoritePair(DirectoryPaneCommand):
         show_status_message('Favorite Pair Selection')
         result = show_quicksearch(self._suggest_directory)
         if result:
-            query, dirName = result
-            directories = ["Home|~|~"]
-            if os.path.isfile(FAVORITEPAIRS):
-                with open(FAVORITEPAIRS, "r") as f:
-                    directories = directories + f.readlines()
-            panes = self.pane.window.get_panes()
-            for dirTuple in directories:
-                if '|' in dirTuple:
-                    favName, favPath1, favPath2 = dirTuple.strip().split('|')[0:3]
-                    if favName == dirName:
-                        if '://' in favPath1:
-                            newPath = expandDirPath(favPath1)
-                            panes[0].set_path(newPath)
-                        else:
-                            newPath = as_url(expandDirPath(favPath1))
-                            panes[0].set_path(newPath)
-                        if '://' in favPath2:
-                            newPath = expandDirPath(favPath2)
-                            panes[1].set_path(newPath)
-                        else:
-                            newPath = as_url(expandDirPath(favPath2))
-                            panes[1].set_path(newPath)
-                        break
+            _, dir_name = result
+            open_favorite_pair(self.pane.window, dir_name)
         clear_status_message()
 
     def _suggest_directory(self, query):
-        directories = ["Home|~|~"]
-        if os.path.isfile(FAVORITEPAIRS):
-            with open(FAVORITEPAIRS, "r") as f:
-                directories = directories + f.readlines()
-        for dirTuple in directories:
-            if '|' in dirTuple:
-                dirName = dirTuple.split('|')[0]
-                match = contains_chars(dirName.lower(), query.lower())
-                if match or not query:
-                    yield QuicksearchItem(dirName, highlight=match)
+        for name in favorite_pair_names():
+            match = contains_chars(name.lower(), query.lower())
+            if match or not query:
+                yield QuicksearchItem(name, highlight=match)
 
 
 #
