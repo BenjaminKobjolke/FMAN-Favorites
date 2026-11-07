@@ -94,6 +94,15 @@ class FavoritesTestBase(unittest.TestCase):
 
 class FtpFavoritesTests(FavoritesTestBase):
 
+    def test_package_imports_without_fman_core_runtime(self):
+        _drop_favorites_modules()
+        sys.modules.pop('core', None)
+        sys.modules.pop('core.quicksearch_matchers', None)
+
+        package = importlib.import_module('favorites')
+
+        self.assertIsNotNone(package)
+
     def test_missing_ftp_plugin_is_detected_and_toggle_hidden(self):
         for name in ('ftpclient', 'ftpclient.commands', 'ftpclient.ftp'):
             sys.modules.pop(name, None)
