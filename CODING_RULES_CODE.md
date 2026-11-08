@@ -2,7 +2,7 @@
 <!-- Step file for code runs, generated from CODING_RULES.md — CODING_RULES.md stays the complete rule set -->
 
 # Version
-15
+19
 
 Increase this version number whenever this rule file changes.
 
@@ -317,6 +317,21 @@ The logger's name is fixed per language so it is the same known type in every pr
 | Unity C#      | `GameLog` (static) | `GameLog.cs`        |
 | Svelte/JS/TS  | `logger` (export)  | `logger.ts`         |
 | Arduino       | `Log`              | `Log.h` / `Log.cpp` |
+| Rust          | `log` / `tracing` facade, `app_logger::init()` | `app_logger.rs` |
+
+---
+
+## App Error Reporting (BINDING)
+
+- **Applies to:** released end-user apps distributed to people other than their developer, including app stores, installers, downloads, and deployed web apps. Libraries, CLI tools, API-only repositories, and personal tools are exempt. Local logging alone does not satisfy this rule.
+- **Capture:** unexpected, actionable failures at framework and process boundaries: unhandled framework or UI errors, uncaught async or platform errors, startup failures, and 5xx responses from the app's own API. Do not report expected failures such as validation errors, offline conditions, cancelled requests, or 4xx responses.
+- **Report contents:** error kind, platform, app version, exception type, message, and stack trace when available. For HTTP failures, include only method, path, and status. Never include credentials, tokens, query strings, headers, request or response bodies, or personal data. Before sending, redact tokens, JWT-shaped strings, emails, and values associated with `password`, `token`, `secret`, or `key`; cap message and stack length.
+- **Delivery:** send to the project's own API. Use a hosted error service only when the user approves it in the project plan. Use a dedicated transport that cannot report its own failures and is excluded from debug network logs. Set a bounded timeout, deduplicate within an app start, and cap reports per start. Document whether offline or failed delivery is dropped or placed in a bounded queue, and log the failure locally. Reporting must not change what the user sees. Debug builds pointed at production must not send reports.
+- **Receiver:** validate input, redact and cap it again, store no IP address, request headers, or request body, rate-limit by client address, and apply a configured retention period. Provide a protected, paged, filterable read route so an authorised person or scheduled check can review reports. Without protected retrieval, the rule is not met.
+- Document captured and excluded data, limits, offline behavior, and how to read reports in `docs/APP_ERROR_REPORTING.md`.
+- Before the first release with reporting and after changing it, use a non-production build to send a synthetic report containing a fake token and email. Read it back through the protected route and confirm both values were redacted.
+- Automatic triage or repair todos based on the read route are optional.
+- Platform how-to: `flutter/APP.md` → "Error Reporting". Server half: `project_type/REST_API.md` → "App Error Report Intake (BINDING)". The GoRabbits app and Turbo Habits API are the reference implementations.
 
 ---
 
@@ -391,6 +406,53 @@ third-party APIs.
 
 ---
 
+## Upstream Forks
+
+In a fork that merges changes from an upstream project, these rules apply to new and changed code
+only. Do not reformat, rename, move, or refactor upstream code that the task does not need. Prefer
+new files for features, and keep project-specific setup in new files plus the `CLAUDE.md` pointer
+so upstream merges stay clean.
+
+---
+
+## Coding-Rules Plugin Updates in Tickets Watcher Runs
+
+A todo may need a rules version that is published in the coding-rules marketplace but not
+installed on this machine yet (for example a new rule file). A Tickets Watcher run — a phase the
+watcher started for a todo, working from `tickets/<id>/` — may install it itself. Any other
+session asks the user to update the plugin instead.
+
+- **Precondition check.** Read `claude plugin list --json` and take the entry
+  `coding-rules@<marketplace>`. The check passes only when its `version` is at least the
+  required version and `<installPath>/rules/<required rule file>` exists. Use `installPath`;
+  never build the cache path by hand.
+- **Bounded update.** Only when the check fails, run exactly these two commands, then check
+  again:
+  1. `claude plugin marketplace update <marketplace>` (the marketplace of the plugin id, today
+     `claude-coding-rules`);
+  2. `claude plugin update coding-rules@<marketplace> --scope user --json`.
+  Nothing else: no `install`, `uninstall`, `enable` or `disable`, no other plugin or
+  marketplace, no `-y` and no `--accept-command`.
+- **Stop when it does not work.** When a command exits non-zero, asks to confirm a command, or
+  the second check still fails, stop with `OUTCOME: blocked` and
+  `BLOCKER: coding-rules <version> with <rule file> is not installed`, quoting the CLI output.
+- **Never edit machine-managed plugin files.** No agent copies files into, or edits anything
+  under, `~/.claude/plugins/` (cache, `installed_plugins.json`, marketplaces) — not in a watcher
+  run either.
+- **Published first.** The update installs only what the marketplace source holds. The rules
+  todo that adds the version must be done (its `plugin.json` version bumped, and pushed when the
+  source is a git remote). When the source lacks the version, the update cannot help: wait for
+  that todo instead.
+- **Next process.** The run that updated keeps the plugin it started with. Read the new rule
+  files from `installPath`, or let the dependent work continue in a later watcher run.
+- **Planning.** A plan run checks the installed version read-only with
+  `claude plugin list --json` and records it in the plan's context. When it is too old, the
+  plan's first ordered step is "check, update if needed, check again" as above, before any work
+  that needs the rules. It is an ordered step the implement run does, not a by-hand step.
+  Dependent work resumes only after that check passes.
+
+---
+
 ## Maximum File Length — 300 Lines
 
 Split files when they exceed 300 lines to keep code navigable during fast iteration.
@@ -452,6 +514,27 @@ ports, base URLs. They differ across machines and environments and make code non
   `*_RULES.md` already mandates), with a committed `.example` template documenting every key.
 - Distinct from the secrets rule above: this is about **portability** (runs anywhere), not
   secrecy. A non-secret hostname still belongs in config, not in code.
+
+---
+
+## Debug Tools Only on Local Machines (BINDING)
+
+Debug switches and debug-only features are on only on a developer machine — never on a
+deployed copy (live site, server, store or installer build).
+
+- **Off by default.** Tracked config, `.example` templates and build defaults ship with debug
+  off (`'debug' => false`, `DEBUG=0`, release build). A missing key reads as off.
+- **On only through a local override** that is gitignored and excluded from deploy
+  (`config/app.local.php`, `.env.local`, a debug build; listed in `.gitignore` and
+  `.deployignore` or the upload filter). Commit a `.example` of the override with debug on
+  and name the copy step in the README setup.
+- **One switch gates everything debug-only:** raw error output and stack traces, preview or
+  sample routes (`?preview=...`), debug toolbars, verbose network logs, seeded test logins.
+  Never gate them on a URL parameter, a hidden route or a hostname check alone.
+- **Deployed errors:** show a short generic message; send the detail to the logger (see
+  "Centralized Logger").
+- Found debug on in a tracked or deployed config? Turn it off there and move the local need
+  into the override — "previews need it" is not a reason to keep it on.
 
 ---
 
