@@ -56,6 +56,10 @@ class FavoritesTestBase(unittest.TestCase):
         self.core_module = types.ModuleType('core')
         self.matchers_module = types.ModuleType('core.quicksearch_matchers')
         self.matchers_module.contains_chars = lambda text, query: query in text
+        self.matchers_module.contains_chars_any_order = (
+            lambda text, query: all(word in text for word in query.split())
+            if query.split() else None
+        )
         self.ftpclient = types.ModuleType('ftpclient')
         self.ftpclient.__path__ = []
         self.commands = types.ModuleType('ftpclient.commands')

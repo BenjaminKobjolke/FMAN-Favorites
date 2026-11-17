@@ -3,12 +3,12 @@
 import os
 import re
 
-from core.quicksearch_matchers import contains_chars
 from fman import (
     DirectoryPaneCommand, QuicksearchItem,
     clear_status_message, show_quicksearch, show_status_message, show_prompt,
 )
 from fman.url import as_human_readable
+from .matching import match_query
 from .paths import FAVORITELIST, SHORTENERLIST
 
 
@@ -73,7 +73,7 @@ class RemoveShortenerDirectory(DirectoryPaneCommand):
         for shortTuple in shorteners:
             if shortTuple.strip() != "":
                 shortName = shortTuple.split('|')[0]
-                match = contains_chars(shortName.lower(), query.lower())
+                match = match_query(shortName, query)
                 if match or not query:
                     yield QuicksearchItem(shortName, highlight=match)
 

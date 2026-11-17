@@ -5,13 +5,13 @@ from typing import Any
 from urllib.parse import urlparse
 
 import fman
-from core.quicksearch_matchers import contains_chars
 from fman import (
     DirectoryPaneCommand, QuicksearchItem,
     clear_status_message, show_quicksearch, show_status_message, show_prompt,
 )
 from fman.url import as_human_readable, as_url
 from .ftp_support import _ftp, _show_ftp
+from .matching import match_query
 from .paths import FAVORITELIST, expandDirPath, shortenDirPath
 
 
@@ -102,7 +102,7 @@ class GoToFavorite(DirectoryPaneCommand):
 
     def _suggest_directory(self, query):
         for item in favorite_items():
-            match = contains_chars(item.lower(), query.lower())
+            match = match_query(item, query)
             if match or not query:
                 yield QuicksearchItem(item, highlight=match)
 
@@ -144,7 +144,7 @@ class RemoveFavoriteDirectory(DirectoryPaneCommand):
         for favTuple in favorites:
             if '|' in favTuple:
                 favName = favTuple.split('|')[0]
-                match = contains_chars(favName.lower(), query.lower())
+                match = match_query(favName, query)
                 if match or not query:
                     yield QuicksearchItem(favName, highlight=match)
 

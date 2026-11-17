@@ -3,12 +3,12 @@
 import os
 from typing import Any
 
-from core.quicksearch_matchers import contains_chars
 from fman import (
     DirectoryPaneCommand, QuicksearchItem, clear_status_message,
     show_prompt, show_quicksearch, show_status_message,
 )
 from fman.url import as_url
+from .matching import match_query
 from .paths import FAVORITEPAIRS, expandDirPath, shortenDirPath
 
 
@@ -73,7 +73,7 @@ class GoToFavoritePair(DirectoryPaneCommand):
 
     def _suggest_directory(self, query):
         for name in favorite_pair_names():
-            match = contains_chars(name.lower(), query.lower())
+            match = match_query(name, query)
             if match or not query:
                 yield QuicksearchItem(name, highlight=match)
 
@@ -115,7 +115,7 @@ class RemoveFavoriteDirectoryPairs(DirectoryPaneCommand):
         for favTuple in favorites:
             if '|' in favTuple:
                 favName = favTuple.split('|')[0]
-                match = contains_chars(favName.lower(), query.lower())
+                match = match_query(favName, query)
                 if match or not query:
                     yield QuicksearchItem(favName, highlight=match)
 
