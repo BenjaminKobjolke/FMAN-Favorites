@@ -3,6 +3,8 @@
 try:
     from .favorite_commands import (
         GoToFavorite,
+        CopyToFavorite,
+        MoveToFavorite,
         RemoveFavoriteDirectory,
         SetFavoriteDirectory,
     )
@@ -32,6 +34,8 @@ else:
         "GoToFavoritePair",
         "ToggleFtpInFavorites",
         "GoToFavorite",
+        "CopyToFavorite",
+        "MoveToFavorite",
         "RemoveFavoriteDirectoryPairs",
         "RemoveFavoriteDirectory",
         "RemoveShortenerDirectory",

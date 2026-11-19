@@ -52,6 +52,8 @@ After restarting **fman**, you will have the ability to set favorite directories
 
 `Go To Favorite` - This command will display a list of favorites by their assigned names for the user to choose from. As you type letters in the name, the list is shortened. Once one is selected, the current panel is moved to that directory.
 
+`Copy To Favorite` and `Move To Favorite` - These commands let you choose a local favorite as the destination for the selected files and folders. After you choose a favorite, fman's usual copy or move confirmation prompt appears. FTP favorites are not listed because they need a login step before they can be transfer destinations.
+
 `Show Favorites Panel` - Opens an extra pane with Favorites, Favorite pairs, and recently visited directories. Press Enter or double-click an entry to open it, Escape or Backspace to close the pane, and Tab or Shift+Tab to switch panes. History is kept in memory and is lost when fman closes. The mounted panel is not restored after an fman restart, as defined by fman++.
 
 When the `FMAN_FTPClient` plugin is installed, the command `Toggle FTP In Favorites` is available in the command palette. It switches the `show_ftp` setting in `Favorites Settings.json` on or off (off by default). When enabled, `Go To Favorite` (`Ctrl+0`) also lists FTP bookmarks as `FTP: <alias>` and active connections as `FTP open: <server>`. Selecting a bookmark opens its default path; selecting an active connection returns to its last visited path. The toggle command is hidden when the FTP plugin is not installed.

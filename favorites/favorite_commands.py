@@ -24,14 +24,36 @@ from .paths import FAVORITELIST, expandDirPath, shortenDirPath
 #
 
 
-def favorite_items() -> list[str]:
-    """Return the favorite names displayed by GoToFavorite."""
+def _local_favorite_entries() -> list[tuple[str, str]]:
+    """Return local favorite names and paths, including the Home entry."""
     directories = ["Home|~"]
     if os.path.isfile(FAVORITELIST):
         with open(FAVORITELIST, "r") as f:
             directories = directories + f.readlines()
 
-    items = [directory.split('|')[0] for directory in directories if '|' in directory]
+    return [tuple(directory.strip().split('|')[0:2])
+            for directory in directories if '|' in directory]
+
+
+def favorite_url(dir_name: str) -> str | None:
+    """Return the URL for a local favorite, or None when it is unknown."""
+    for favorite_name, favorite_path in _local_favorite_entries():
+        if favorite_name == dir_name:
+            expanded_path = expandDirPath(favorite_path)
+            if '://' in favorite_path:
+                return expanded_path
+            return as_url(expanded_path)
+    return None
+
+
+def local_favorite_names() -> list[str]:
+    """Return names of local favorites without FTP entries."""
+    return [name for name, _ in _local_favorite_entries()]
+
+
+def favorite_items() -> list[str]:
+    """Return the favorite names displayed by GoToFavorite."""
+    items = local_favorite_names()
     ftp = _ftp()
     if _show_ftp() and ftp:
         _, ftp_module = ftp
@@ -67,21 +89,9 @@ def open_favorite(pane: Any, dir_name: str) -> None:
             pane.set_path(base_url + '/')
         clear_status_message()
         return
-    directories = ["Home|~"]
-    if os.path.isfile(FAVORITELIST):
-        with open(FAVORITELIST, "r") as f:
-            directories = directories + f.readlines()
-    for dir_tuple in directories:
-        if '|' in dir_tuple:
-            fav_name, fav_path = dir_tuple.strip().split('|')[0:2]
-            if fav_name == dir_name:
-                if '://' in fav_path:
-                    new_path = expandDirPath(fav_path)
-                    pane.set_path(new_path)
-                else:
-                    new_path = as_url(expandDirPath(fav_path))
-                    pane.set_path(new_path)
-                break
+    url = favorite_url(dir_name)
+    if url is not None:
+        pane.set_path(url)
     clear_status_message()
 
 
@@ -107,6 +117,37 @@ class GoToFavorite(DirectoryPaneCommand):
                 yield QuicksearchItem(item, highlight=match)
 
 
+class _TransferToFavorite(DirectoryPaneCommand):
+    _command: str
+
+    def __call__(self) -> None:
+        show_status_message('Favorite Selection')
+        try:
+            result = show_quicksearch(self._suggest_directory)
+            if result:
+                _, dir_name = result
+                url = favorite_url(dir_name)
+                if url is not None:
+                    self.pane.run_command(self._command, {'dest_dir': url})
+        finally:
+            clear_status_message()
+
+    def _suggest_directory(self, query):
+        # shortcut: FTP favorites need a login step before they can be transfer targets.
+        for item in local_favorite_names():
+            match = match_query(item, query)
+            if match or not query:
+                yield QuicksearchItem(item, highlight=match)
+
+
+class CopyToFavorite(_TransferToFavorite):
+    _command = 'copy'
+
+
+class MoveToFavorite(_TransferToFavorite):
+    _command = 'move'
+
+
 #
 # Function:    RemoveFavoriteDirectory
 #
@@ -127,26 +168,26 @@ class RemoveFavoriteDirectory(DirectoryPaneCommand):
         if result:
             query, dirName = result
             if os.path.isfile(FAVORITELIST):
+                favorite_entries = iter(_local_favorite_entries()[1:])
                 with open(FAVORITELIST, "r") as f:
                     directories = f.readlines()
                 with open(FAVORITELIST, "w") as f:
                     for dirTuple in directories:
-                        favName = dirTuple.split('|')[0]
+                        if '|' not in dirTuple:
+                            f.write(dirTuple)
+                            continue
+                        favName, _ = next(favorite_entries)
                         if favName != dirName:
                             f.write(dirTuple)
         clear_status_message()
 
     def _suggest_favorite(self, query):
-        favorites = [""]
-        if os.path.isfile(FAVORITELIST):
-            with open(FAVORITELIST, "r") as f:
-                favorites = f.readlines()
-        for favTuple in favorites:
-            if '|' in favTuple:
-                favName = favTuple.split('|')[0]
-                match = match_query(favName, query)
-                if match or not query:
-                    yield QuicksearchItem(favName, highlight=match)
+        for favName, favPath in _local_favorite_entries():
+            if (favName, favPath) == ('Home', '~'):
+                continue
+            match = match_query(favName, query)
+            if match or not query:
+                yield QuicksearchItem(favName, highlight=match)
 
 
 #
@@ -186,9 +227,13 @@ class SetFavoriteDirectory(DirectoryPaneCommand):
         if os.path.isfile(FAVORITELIST):
             with open(FAVORITELIST, "r") as f:
                 directories = f.readlines()
+            favorite_entries = iter(_local_favorite_entries()[1:])
             with open(FAVORITELIST, "w") as f:
                 for dirTuple in directories:
-                    oldDirName = dirTuple.split('|')[0]
+                    if '|' not in dirTuple:
+                        f.write(dirTuple)
+                        continue
+                    oldDirName, _ = next(favorite_entries)
                     if favName != oldDirName:
                         f.write(dirTuple)
 
