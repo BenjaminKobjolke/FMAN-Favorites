@@ -593,7 +593,7 @@ the wrong side of **No God Classes**.
   fields.
 
 # Version
-8
+10
 
 Increase this version number whenever this rule file changes.
 
@@ -605,6 +605,7 @@ See `COMMON_RULES.md` for rules that apply to all languages.
 
 - `python/WEB_TEMPLATES.md` — web templates with Jinja2 or Flask.
 - `python/GUI.md` — PySide6 desktop interface.
+- `python/TKINTER.md` — tkinter desktop interface (small stdlib-only tools).
 - `python/LOCALIZATION.md` — translated content.
 - `python/RELEASE.md` — release tooling.
 - `python/INSTALLER.md` — Windows installer.
@@ -622,6 +623,7 @@ inventing a new approach.
 - `python/recipes/SINGLE_INSTANCE.md` — prevent a second instance of the app from starting.
 
 ## CLI Menus
+<!-- steps: review, code -->
 
 For **interactive command-line** applications, never hand-roll a menu out of `input()`
 and printed option lists. Use **`pick`** — an arrow-key menu with a selection
@@ -712,58 +714,6 @@ what the curses backend breaks, and only a human at a terminal can see it.
 
 ---
 
-## Project Setup Scripts
-
-Copy the setup batch files from the `python_setup_files/` folder bundled with the
-coding-rules plugin (next to this rules file).
-
-### install.bat
-
-Initial project setup:
-
-- Checks if `uv` is installed
-- Creates virtual environment via `uv sync --all-extras`
-- Runs tests to verify setup
-
-### update.bat
-
-Update all dependencies:
-
-- Updates lock file with `uv lock --upgrade`
-- Syncs updated dependencies
-- Runs linting checks (`ruff`, `mypy`)
-- Runs tests to verify compatibility
-
-### tools/run_tests.bat
-
-Run the test suite:
-
-- Runs `pytest tests/ -v` with verbose output
-- Shows pass/fail summary
-- Projects that split unit/integration point it at `tests/unit`
-
-### tools/run_integration_tests.bat
-
-Run the integration test suite:
-
-- Runs `pytest tests/integration -v`
-- Same uv check + summary as run_tests.bat
-
-### Usage
-
-```bash
-# First time setup
-install.bat
-
-# Run tests
-tools\run_tests.bat
-
-# Update dependencies
-update.bat
-```
-
----
-
 # Essential Additional Rules (must-have)
 
 ## 1) Use `pyproject.toml` as the single source of truth
@@ -779,6 +729,7 @@ Recommended baseline:
 ---
 
 ## 2) Enforce formatting + linting + type checking in CI
+<!-- steps: review, code -->
 
 Minimum toolchain:
 
@@ -842,6 +793,7 @@ Rules:
 ---
 
 ## 6) Use `spec=` with MagicMock to catch interface mismatches
+<!-- steps: review, code -->
 
 `MagicMock` without `spec` accepts **any** attribute, even non-existent ones:
 
@@ -904,15 +856,6 @@ type(mock_obj).prop_name = PropertyMock(return_value="value")
 with patch("module.ClassName", spec=RealClass) as mock_cls:
     mock_cls.return_value.method.return_value = "value"
 ```
-
----
-
-## 7) Required Batch Files
-
-Every project must include these batch files:
-
-* `start.bat` - In the root directory, starts the application
-* `tools/run_tests.bat` - Runs the test suite
 
 ---
 
